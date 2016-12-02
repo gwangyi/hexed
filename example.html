@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script
+    src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
+    integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc="
+    crossorigin="anonymous"></script>
+  <script src="./jquery.hexed-0.1.js"></script>
+  <script>
+  (function() {
+    $(document).ready(function() {
+      var hexed = $('#hexed');
+      var hexed2 = $('#hexed2').hexed(16);
+      // make 256-byte buffer
+      hexed.hexed(256);
+      // hexed.hexed("Hello, world!") // If you want to initialize hexed with pre-filled buffer
+      function update(ev) {
+        $('#selected').text(hexed.selected(parseInt($('#length').val())));
+        $('#be1s').text(hexed.be(1, true));
+        $('#be2s').text(hexed.be(2, true));
+        $('#be4s').text(hexed.be(4, true));
+        $('#be8s').text(hexed.be(8, true));
+        $('#be1u').text(hexed.be(1));
+        $('#be2u').text(hexed.be(2));
+        $('#be4u').text(hexed.be(4));
+        $('#be8u').text(hexed.be(8));
+        $('#le1s').text(hexed.le(1, true));
+        $('#le2s').text(hexed.le(2, true));
+        $('#le4s').text(hexed.le(4, true));
+        $('#le8s').text(hexed.le(8, true));
+        $('#le1u').text(hexed.le(1));
+        $('#le2u').text(hexed.le(2));
+        $('#le4u').text(hexed.le(4));
+        $('#le8u').text(hexed.le(8));
+      }
+      hexed.select(update);
+      hexed.change(update);
+      hexed.selectedOffset(0);
+      $('#length').change(update);
+    })
+  })();
+  </script>
+</head>
+<body>
+  <div id="hexed"></div>
+  <div id="info">
+    <p>Length: <input id="length" type="number" value="4"/></p>
+    <p>String: <span id="selected"></span></p>
+    <table>
+      <tr>
+        <td>Big-endian</td><td>1-byte</td><td>signed</td><td>integer: </td><td id="be1s"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>1-byte</td><td>unsigned</td><td>integer: </td><td id="be1u"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>2-byte</td><td>signed</td><td>integer: </td><td id="be2s"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>2-byte</td><td>unsigned</td><td>integer: </td><td id="be2u"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>4-byte</td><td>signed</td><td>integer: </td><td id="be4s"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>4-byte</td><td>unsigned</td><td>integer: </td><td id="be4u"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>8-byte</td><td>signed</td><td>integer: </td><td id="be8s"></td>
+      </tr>
+      <tr>
+        <td>Big-endian</td><td>8-byte</td><td>unsigned</td><td>integer: </td><td id="be8u"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>1-byte</td><td>signed</td><td>integer: </td><td id="le1s"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>1-byte</td><td>unsigned</td><td>integer: </td><td id="le1u"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>2-byte</td><td>signed</td><td>integer: </td><td id="le2s"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>2-byte</td><td>unsigned</td><td>integer: </td><td id="le2u"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>4-byte</td><td>signed</td><td>integer: </td><td id="le4s"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>4-byte</td><td>unsigned</td><td>integer: </td><td id="le4u"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>8-byte</td><td>signed</td><td>integer: </td><td id="le8s"></td>
+      </tr>
+      <tr>
+        <td>Little-endian</td><td>8-byte</td><td>unsigned</td><td>integer: </td><td id="le8u"></td>
+      </tr>
+    </table>
+    <p><input type="button" onclick="$('#hexed').clean()" value="Clean modified mark"/></p>
+    <p>
+      <input type="button" onclick="$('#hexed').val('SOME-data-is\0AlReDy-fillED\xaa\xaa\xaa\xaa')" value="Reset hexed with value"/>
+      <input type="button" onclick="$('#hexed').val(128)" value="Reset hexed with zero-filled buffer"/>
+    </p>
+    <p> Two or more hexed can be used in one page </p>
+    <div id="hexed2"></div>
+  </div>
+</body>
+</html>
