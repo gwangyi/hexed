@@ -1,4 +1,12 @@
-(function($) {
+// RequireJS compatibility
+// If 'define' function is defined, jquery.hexed uses it
+(function(factory) {
+  if(typeof define !== 'undefined') {
+    define(['jquery'], factory);
+  } else {
+    factory(jQuery);
+  }
+})(function($) {
   // Backup original functions
   var origVal = $.fn.val;
   var origSel = $.fn.selected;
@@ -38,6 +46,11 @@
       if(next.hasClass('hd-padding') || next.length == 0) break;
     }
     return ret; // return cummulated value
+  }
+
+  // a shortcut for $.attr('readonly')
+  $.fn.readonly = function() {
+    return this.attr.bind(this, 'readonly').call(arguments);
   }
 
   // Clear modified flag of all cells
@@ -92,6 +105,15 @@
       return y + String.fromCharCode(x);
     })
   }
+
+  // In hexed, be and le function returns string not integer.
+  // Javascript uses 64bit float type for numeric values: it means js cannot manipulate
+  // 64bit integer properly.
+  // Internally, hexed uses 1000-based integer representation with array
+  // The reason for using 1000-based representation is that
+  // it is easy for adding comma at every three digits.
+  // 1000-based integer array representation uses little-endian style.
+  // Cummulation function that converts bytes to big-endian unsigned big-int
   function cumm_be(y, x) {
     var i = 0, overflow = 0;
     y[0] = y[0] * 256 + x;
@@ -108,33 +130,60 @@
     }
     return y;
   }
+  // Convert unsigned big-int to signed big-int
   function makeSign(bign, length) {
-    var i, maxint = [0x80], maxuint = [1];
+    // maxint contains maximum signed integer
+    // maxuint contains maximum unsigned integer + 1
+    var i, maxint = [0x80], maxuint = [1], negative = true;
     length = length || 1;
     for(i = 0; i < length - 1; i++) {
       maxint = cumm_be(maxint, 0);
       maxuint = cumm_be(maxuint, 0);
     }
     maxuint = cumm_be(maxuint, 0);
-    if(bign[maxint.length - 1] >= maxint[maxint.length - 1]) {
+
+    // If given bign is smaller than maxint, it is positive.
+    // it does not require any conversion.
+    if(maxint.length > bign.length)
+      return bign;
+    // If given bign is larger or equals to maxint, it is negative
+    else if(maxint.length == bign.length) {
+      for(i = maxint.length - 1; i >= 0; i--) {
+        if(maxint[i] < bign[i]) {
+          break;
+        } else if(maxint[i] > bign[i]) {
+          negative = false;
+          break;
+        }
+      }
+    }
+    // If negative, returns maxuint - bign. 2's complement
+    if(negative) {
       for(i = 0; i < maxuint.length; i++) {
         maxuint[i] -= bign[i];
-        if(maxuint[i] < 0) {
+        if(maxuint[i] < 0) { // borrowing
           maxuint[i] += 1000;
           maxuint[i + 1] -= 1;
         }
       }
+      // removes 0-heading
       while(maxuint[maxuint.length - 1] == 0) {
         maxuint.pop();
       }
+      // negate msb only, to make easy to convert string
       maxuint[maxuint.length - 1] = -maxuint[maxuint.length - 1];
       return maxuint;
     }
     return bign;
   }
+  // convert 1000-based integer representation to string
   function bigint2string(bign) {
-    bign = bign.reverse();
+    // If given bign is less than 1000, we don't need to care about comma
     if(bign.length == 1) return bign[0].toString();
+    // We used little-endian, so reverse it
+    bign = bign.reverse();
+    // First element of reversed bign does not use padding
+    // Other elements need to be padded with up to 3 zeros
     return bign[0].toString() + "," + $.map(bign.slice(1), function(n) {
       var s = n.toString();
       return Array(3 - s.length + 1).join("0") + s;
@@ -166,10 +215,12 @@
       if(origLE !== undefined) return origLE.bind(this).call(arguments);
       return undefined;
     }
+    // Cummulate bytes and reverse: little-endian to big-endian converting
     var y = cummulate(hexed, [], length, function(y, x) {
       y[y.length] = x;
       return y;
-    }).reverse()
+    }).reverse();
+    // Convert big-endian big-int
     var ret = [0];
     for(var i = 0; i < y.length; i++) {
       ret = cumm_be(ret, y[i]);
@@ -180,6 +231,11 @@
 
     return bigint2string(ret);
   }
+
+  // In hex-edit mode, indicate which nibble is will be modified.
+  // 0 means upper, and 1 means lower
+  // Note: it is globally unique variable, because two or more hexed cannot be edited at the same time
+  var offset = 0;
   // set/get editing string
   $.fn.val = function(value) {
     // this function applies first one only
@@ -270,6 +326,10 @@
       var str_span = $(this).data('assoc-str');
       // set that span associated
       str_span.addClass('hd-associated');
+      // Take focus
+      $('a', $(this).parents('.hexed')).focus();
+      // Reset editing offset
+      offset = 0;
       // trigger "select" event
       $(this).trigger("select", parseInt($(this).attr('data-offset')));
     });
@@ -283,43 +343,15 @@
       var hex_span = $(this).data('assoc-hex');
       // set that span associated
       hex_span.addClass('hd-associated');
+      // Take focus
+      $('a', $(this).parents('.hexed')).focus();
+      // Reset editing offset
+      offset = 0;
       // trigger "select" event
       $(this).trigger("select", parseInt($(this).attr('data-offset')));
     })
     return this;
   }
-  // creator
-  $.fn.hexed = function(val) {
-    var hexed = this;
-
-    $(this).empty();
-
-    // create outline
-    var wrap = $('<div/>');
-    var body = $('<div/>');
-    var addr_div = $('<div/>');
-    var hex_div = $('<div/>');
-    var str_div = $('<div/>');
-    wrap.addClass('hd-wrap');
-    body.addClass('hd-body');
-    addr_div.addClass('hd-addr');
-    hex_div.addClass('hd-hex');
-    str_div.addClass('hd-str');
-    hexed.append(wrap);
-    wrap.append(body);
-    body.append(addr_div).append(hex_div).append(str_div);
-
-    hexed.addClass('hexed');
-    // If data is given, set data to that data
-    if(val !== undefined) this.val(val);
-
-    return hexed;
-  }
-
-  // In hex-edit mode, indicate which nibble is will be modified.
-  // 0 means upper, and 1 means lower
-  // Note: it is globally unique variable, because two or more hexed cannot be edited at the same time
-  var offset = 0;
 
   // Process keypress event at hex edit mode
   function hex_process(selected, ev) {
@@ -401,6 +433,57 @@
     // trigger 'change' event
     selected.data('owner').trigger("change", parseInt(next.attr('data-offset')));
   }
+  // creator
+  $.fn.hexed = function(val) {
+    var hexed = this;
+
+    // if val is not given, we use inner text as input
+    if(val === undefined) val = $(this).text();
+    $(this).empty();
+
+    // create outline
+    var wrap = $('<div/>');
+    var body = $('<div/>');
+    var addr_div = $('<div/>');
+    var hex_div = $('<div/>');
+    var str_div = $('<div/>');
+    // Invisible focus holder
+    var focus = $('<a href="#"/>');
+    wrap.addClass('hd-wrap');
+    body.addClass('hd-body');
+    addr_div.addClass('hd-addr');
+    hex_div.addClass('hd-hex');
+    str_div.addClass('hd-str');
+    hexed.append(wrap);
+    wrap.append(body);
+    body.append(addr_div).append(hex_div).append(str_div).append(focus);
+
+    hexed.addClass('hexed');
+
+    focus.focus(function() {
+      $(hexed).addClass('hd-focus');
+    });
+    focus.blur(function() {
+      $(hexed).removeClass('hd-focus');
+    });
+    focus.keypress(function(ev) {
+      if($(hexed).attr('readonly')) return true;
+      var selected = $('span.hd-hex.hd-selected', hexed);
+      if(selected.length != 0) {
+        hex_process(selected, ev);
+        return false;
+      }
+      selected = $('span.hd-str.hd-selected', hexed);
+      if(selected.length != 0) {
+        str_process(selected, ev);
+        return false;
+      }
+    });
+
+    $(this).val(val);
+
+    return hexed;
+  }
 
   $(document).ready(function() {
     // add default style sheet
@@ -415,16 +498,10 @@
       'span.hd-hex { padding-left: .25em; padding-right: .25em; }\n' +
       'span.hd-hex:nth-child(8) { border-right: 1px solid gray; }\n' +
       'span.hd-hex.hd-modified, span.hd-str.hd-modified { background: orange; }\n' +
-      'span.hd-hex.hd-selected, span.hd-str.hd-selected { background: lightblue; }\n' +
-      'span.hd-hex.hd-associated, span.hd-str.hd-associated { background: pink; }\n' +
+      '.hd-focus span.hd-hex.hd-selected, .hd-focus span.hd-str.hd-selected { background: lightblue; }\n' +
+      '.hd-focus span.hd-hex.hd-associated, .hd-focus span.hd-str.hd-associated { background: pink; }\n' +
       '</style>'));
-
-    // keypress event handler
-    $('body').keypress(function(ev){
-      var selected = $('span.hd-hex.hd-selected');
-      if(selected.length != 0) hex_process(selected, ev);
-      selected = $('span.hd-str.hd-selected');
-      if(selected.length != 0) str_process(selected, ev);
-    });
   });
-})(jQuery);
+
+  return $;
+});
