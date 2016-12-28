@@ -248,7 +248,7 @@
     if(value === undefined) {
       // getter
       // map hex code to string, concatenate, and return concatenated string
-      return $.map($('span.hd-hex', hexed), function(n) {
+      return $.map($('span.hd-hex', hexed).not('.hd-padding'), function(n) {
         return String.fromCharCode(parseInt('0x' + $(n).text()));
       }).join("");
     }
