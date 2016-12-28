@@ -50,13 +50,13 @@
 
   // a shortcut for $.attr('readonly')
   $.fn.readonly = function() {
-    return this.attr.bind(this, 'readonly').call(arguments);
+    return this.attr.bind(this, 'readonly').apply(this, arguments);
   }
 
   // Clear modified flag of all cells
   $.fn.clean = function() {
     $('span.hd-modified', this).removeClass('hd-modified');
-    if(origClean !== undefined) return origClean.bind(this).call(arguments);
+    if(origClean !== undefined) return origClean.apply(this, arguments);
     return this;
   }
 
@@ -66,7 +66,7 @@
     var hexed = $(this[0]);
     // if selectedOffset applied to not hexed object, do original one
     if(!hexed.hasClass('hexed')) {
-      if(origSelOff !== undefined) return origSelOff.bind(this).call(arguments);
+      if(origSelOff !== undefined) return origSelOff.apply(this, arguments);
       return this;
     }
     // if new offset value is not given, return offset of currently selected one
@@ -97,7 +97,7 @@
     var hexed = $(this[0]);
     // if selectedOffset applied to not hexed object, do original one
     if(!hexed.hasClass('hexed')) {
-      if(origSel !== undefined) return origSel.bind(this).call(arguments);
+      if(origSel !== undefined) return origSel.apply(this, arguments);
       return this;
     }
     // cummulate with string concatenation
@@ -195,7 +195,7 @@
     var hexed = $(this[0]);
     // if selectedOffset applied to not hexed object, do original one
     if(!hexed.hasClass('hexed')) {
-      if(origBE !== undefined) return origBE.bind(this).call(arguments);
+      if(origBE !== undefined) return origBE.apply(this, arguments);
       return undefined;
     }
     // cummulate with bit-shift and bit-or
@@ -212,7 +212,7 @@
     var hexed = $(this[0]);
     // if selectedOffset applied to not hexed object, do original one
     if(!hexed.hasClass('hexed')) {
-      if(origLE !== undefined) return origLE.bind(this).call(arguments);
+      if(origLE !== undefined) return origLE.apply(this, arguments);
       return undefined;
     }
     // Cummulate bytes and reverse: little-endian to big-endian converting
@@ -242,7 +242,7 @@
     var hexed = $(this[0]);
     // if selectedOffset applied to not hexed object, do original one
     if(!hexed.hasClass('hexed')) {
-      if(origVal !== undefined) return origVal.bind(this).call(arguments);
+      if(origVal !== undefined) return origVal.apply(this, arguments);
       return this;
     }
     if(value === undefined) {
